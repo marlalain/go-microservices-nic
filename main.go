@@ -16,7 +16,7 @@ func main() {
 	ph := handlers.NewProducts(l)
 
 	sm := http.NewServeMux()
-	sm.Handle("/products", ph)
+	sm.Handle("/products/", ph)
 
 	s := &http.Server{
 		Addr:         ":8000",
@@ -40,8 +40,8 @@ func main() {
 
 	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
-	shutErr := s.Shutdown(tc)
-	if shutErr != nil {
-		l.Fatalln(shutErr)
+	err := s.Shutdown(tc)
+	if err != nil {
+		l.Fatalln(err)
 	}
 }
