@@ -106,12 +106,19 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		prod := &data.Product{}
 		err := prod.FromJSON(r.Body)
-		if err != nil {
-			http.Error(rw, "Error parsing JSON", http.StatusBadRequest)
+		if err == nil {
+			req := r.WithContext(context.WithValue(r.Context(), KeyProduct{}, prod))
+			next.ServeHTTP(rw, req)
+
+			err = prod.Validate()
+			if err != nil {
+				p.l.Printf("", err)
+				http.Error(rw, fmt.Sprintf("Error validating product:\n%s", err), http.StatusBadRequest)
+			}
+
+			return
 		}
 
-		req := r.WithContext(context.WithValue(r.Context(), KeyProduct{}, prod))
-
-		next.ServeHTTP(rw, req)
+		http.Error(rw, "Error parsing JSON", http.StatusBadRequest)
 	})
 }
