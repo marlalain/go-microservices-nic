@@ -112,7 +112,7 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 
 			err = prod.Validate()
 			if err != nil {
-				p.l.Printf("", err)
+				p.l.Println("server: ", err)
 				http.Error(rw, fmt.Sprintf("Error validating product:\n%s", err), http.StatusBadRequest)
 			}
 

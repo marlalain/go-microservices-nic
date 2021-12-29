@@ -17,7 +17,7 @@ var bindAddress = env.String("BIND_ADDRESS", false, ":8000", "Bind address for t
 func main() {
 	err := env.Parse()
 	if err != nil {
-		println("Error parsing the environment variable $BIND_ADDRESS")
+		println("server: Error parsing the environment variable $BIND_ADDRESS")
 		return
 	}
 
