@@ -47,7 +47,7 @@ func GetProduct(id int) (*Product, int, error) {
 }
 
 func AddProduct(p *Product) {
-	p.ID = getNextID()
+	p.ID = GetNextID()
 	products = append(products, p)
 }
 
@@ -62,7 +62,7 @@ func UpdateProduct(id int, p *Product) error {
 	return nil
 }
 
-func getNextID() int {
+func GetNextID() int {
 	lp := products[len(products)-1]
 	return lp.ID + 1
 }

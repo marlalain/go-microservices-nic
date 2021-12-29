@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"go-microservices-nic/data"
 	"log"
@@ -47,12 +49,13 @@ func (p *Products) GetProduct(rw http.ResponseWriter, r *http.Request) {
 
 func (p *Products) PostProduct(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
-	prod := &data.Product{}
-	err := prod.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "Bad Request", http.StatusBadRequest)
-		return
-	}
+
+	// Return resource location
+	id := data.GetNextID()
+	loc := fmt.Sprintf("/products/%d", id)
+	rw.Header().Set("Location", loc)
+
+	prod := r.Context().Value(KeyProduct{}).(*data.Product)
 	rw.WriteHeader(http.StatusCreated)
 	data.AddProduct(prod)
 	p.l.Printf("server: Saving product...")
@@ -62,12 +65,12 @@ func (p *Products) PutProduct(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
-	prod := &data.Product{}
-	err = prod.FromJSON(r.Body)
-	if err != nil {
-		http.Error(rw, "Bad Request", http.StatusBadRequest)
-		return
-	}
+
+	// Return resource location
+	loc := fmt.Sprintf("/products/%d", id)
+	rw.Header().Set("Location", loc)
+
+	prod := r.Context().Value(KeyProduct{}).(*data.Product)
 	err = data.UpdateProduct(id, prod)
 	if err == data.ErrorProductNotFound {
 		http.Error(rw, "Product not found", http.StatusNotFound)
@@ -94,4 +97,21 @@ func (p *Products) DeleteProduct(rw http.ResponseWriter, r *http.Request) {
 	}
 	rw.WriteHeader(http.StatusAccepted)
 	p.l.Printf("server: Deleting product...")
+}
+
+type KeyProduct struct {
+}
+
+func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		prod := &data.Product{}
+		err := prod.FromJSON(r.Body)
+		if err != nil {
+			http.Error(rw, "Error parsing JSON", http.StatusBadRequest)
+		}
+
+		req := r.WithContext(context.WithValue(r.Context(), KeyProduct{}, prod))
+
+		next.ServeHTTP(rw, req)
+	})
 }

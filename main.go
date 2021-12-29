@@ -15,7 +15,11 @@ import (
 var bindAddress = env.String("BIND_ADDRESS", false, ":8000", "Bind address for the server")
 
 func main() {
-	env.Parse()
+	err := env.Parse()
+	if err != nil {
+		println("Error parsing the environment variable $BIND_ADDRESS")
+		return
+	}
 
 	l := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
 
@@ -29,9 +33,11 @@ func main() {
 
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/products", ph.PostProduct)
+	postRouter.Use(ph.MiddlewareProductValidation)
 
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/products/{id:[0-9]+}", ph.PutProduct)
+	putRouter.Use(ph.MiddlewareProductValidation)
 
 	deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
 	deleteRouter.HandleFunc("/products/{id:[0-9]+}", ph.DeleteProduct)
@@ -58,7 +64,7 @@ func main() {
 
 	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
 
-	err := s.Shutdown(tc)
+	err = s.Shutdown(tc)
 	if err != nil {
 		l.Fatalln(err)
 	}
