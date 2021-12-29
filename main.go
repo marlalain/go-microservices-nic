@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/mux"
+	"github.com/nicholasjackson/env"
 	"go-microservices-nic/handlers"
 	"log"
 	"net/http"
@@ -10,16 +12,32 @@ import (
 	"time"
 )
 
+var bindAddress = env.String("BIND_ADDRESS", false, ":8000", "Bind address for the server")
+
 func main() {
+	env.Parse()
+
 	l := log.New(os.Stdout, "[product-api] ", log.LstdFlags)
 
 	ph := handlers.NewProducts(l)
 
-	sm := http.NewServeMux()
-	sm.Handle("/products/", ph)
+	sm := mux.NewRouter()
+
+	getRouter := sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/products", ph.GetProducts)
+	getRouter.HandleFunc("/products/{id:[0-9]+}", ph.GetProduct)
+
+	postRouter := sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/products", ph.PostProduct)
+
+	putRouter := sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/products/{id:[0-9]+}", ph.PutProduct)
+
+	deleteRouter := sm.Methods(http.MethodDelete).Subrouter()
+	deleteRouter.HandleFunc("/products/{id:[0-9]+}", ph.DeleteProduct)
 
 	s := &http.Server{
-		Addr:         ":8000",
+		Addr:         *bindAddress,
 		Handler:      sm,
 		IdleTimeout:  60 * time.Second,
 		ReadTimeout:  1 * time.Second,
